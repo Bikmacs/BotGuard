@@ -1,6 +1,7 @@
 using BotGuard.Gateway.Services;
 
 namespace BotGuard.Gateway.Middleware;
+
 /// <summary>
 /// Главный Middleware BotGuard, выполняющий роль "фейс-контроля".
 /// 
@@ -22,7 +23,7 @@ namespace BotGuard.Gateway.Middleware;
 public class BotGuardMiddleware(
     RequestDelegate next,
     UserAgentInspector userAgentInspector,
-    InMemoryRateLimitService inMemoryRateLimitService,
+    RedisRateLimitService redisRateLimitService,
     ILogger<BotGuardMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
@@ -39,16 +40,24 @@ public class BotGuardMiddleware(
             return;
         }
 
-        if (!inMemoryRateLimitService.TryAcquire(clientIp))
+        if (await redisRateLimitService.IsBlacklistedAsync(clientIp))
+        {
+            logger.LogWarning("403 Forbidden: Your IP is blacklisted.");
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        if (await redisRateLimitService.TryAcquireAsync(clientIp))
         {
             logger.LogWarning("Превышен Rate Limit для IP: {Ip}", clientIp);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
             context.Response.Headers.RetryAfter = "10";
-            await context.Response.WriteAsync("429 Too Many Requests: Rate limit exceeded. Try again in 10 seconds.", context.RequestAborted);
+            await context.Response.WriteAsync("429 Too Many Requests: Rate limit exceeded. Try again in 10 seconds.",
+                context.RequestAborted);
             return;
         }
-        
+
         await next(context);
     }
 }

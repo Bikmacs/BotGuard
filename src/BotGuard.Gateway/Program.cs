@@ -1,5 +1,6 @@
 using BotGuard.Gateway.Middleware;
 using BotGuard.Gateway.Services;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,9 @@ builder.Services.AddReverseProxy()
 
 builder.Services.AddSingleton<UserAgentInspector>();
 builder.Services.AddSingleton<InMemoryRateLimitService>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect("localhost:6379"));
+builder.Services.AddSingleton<RedisRateLimitService>();
 
 var app = builder.Build();
 
