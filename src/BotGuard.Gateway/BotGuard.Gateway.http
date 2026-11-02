@@ -1,0 +1,6 @@
+@BotGuard.Gateway_HostAddress = http://localhost:5233
+
+GET {{BotGuard.Gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
