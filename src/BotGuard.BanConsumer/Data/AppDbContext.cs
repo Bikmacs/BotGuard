@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Incident>().HasIndex(i => new { i.IpAddress, i.DetectedAtUtc });
+        modelBuilder.Entity<Incident>()
+            .HasIndex(i => new { i.IpAddress, i.DetectedAtUtc }).IsUnique();
     }
 }

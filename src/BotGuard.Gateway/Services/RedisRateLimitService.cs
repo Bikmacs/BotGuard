@@ -45,14 +45,14 @@ public class RedisRateLimitService(IConnectionMultiplexer redis)
     /// true — разрешение выдано (запрос проходит), false — окно исчерпано.
     /// Семантика совпадает с InMemoryRateLimitService.TryAcquire.
     /// </summary>
-    public async Task<bool> TryAcquireAsync(string ipAddress)
+    public async Task<bool> TryAcquireAsync(string ipAddress, CancellationToken ct)
     {
         var cache = redis.GetDatabase();
 
         var count = (long)await cache.ScriptEvaluateAsync(
             FixedWindowScript,
             [RedisKeys.RateLimiter(ipAddress)],
-            [(long)WindowDuration.TotalMilliseconds]);
+            [(long)WindowDuration.TotalMilliseconds]).WaitAsync(ct);
 
         return count <= MaxRequests;
     }

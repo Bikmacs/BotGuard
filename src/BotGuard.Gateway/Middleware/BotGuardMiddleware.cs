@@ -67,7 +67,7 @@ public class BotGuardMiddleware(
             return;
         }
         
-        if (!await redisRateLimitService.TryAcquireAsync(clientIp))
+        if (!await redisRateLimitService.TryAcquireAsync(clientIp, context.RequestAborted))
         {
             logger.LogWarning("Превышен Rate Limit для IP: {Ip}", clientIp);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
