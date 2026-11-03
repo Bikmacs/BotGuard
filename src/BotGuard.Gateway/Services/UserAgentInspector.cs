@@ -9,15 +9,16 @@ public class UserAgentInspector
         "headlesschrome", "phantomjs", "selenium", "puppeteer", "playwright",
         "bot", "crawler", "spider", "scraper", "slurp"
     };
-
+    
     public bool IsSuspicious(string? userAgent)
     {
         if (string.IsNullOrWhiteSpace(userAgent))
             return true;
 
-        foreach (var bots in BotSignature)
+        foreach (var signature in BotSignature)
         {
-            return userAgent.Contains(bots, StringComparison.OrdinalIgnoreCase);
+            if (userAgent.Contains(signature, StringComparison.OrdinalIgnoreCase))
+                return true;
         }
         return false;
     }

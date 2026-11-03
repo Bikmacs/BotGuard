@@ -8,6 +8,7 @@ namespace BotGuard.Shared.Events;
 /// DateTimeOffset DetectedAtUtc — точное время фиксации атаки.
 /// </summary>
 public record AbuseDetectedEvent(
-        string IpAddress, AbuseReason 
-        Reason, string? UserAgent, 
+        string IpAddress, 
+        AbuseReason Reason, 
+        string? UserAgent, 
         DateTimeOffset DetectedAtUtc);
