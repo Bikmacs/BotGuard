@@ -2,7 +2,6 @@ using BotGuard.Gateway.Middleware;
 using BotGuard.Gateway.Services;
 using BotGuard.Shared.Options;
 using MassTransit;
-using Microsoft.AspNetCore.HttpOverrides;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,10 +19,10 @@ builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h =>
+        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h => 
         {
             h.Username(rabbitOptions.Username);
-            h.Password(rabbitOptions.Password);
+            h.Password(rabbitOptions.Password); 
         });
     });
 });
@@ -38,13 +37,14 @@ builder.Services.AddSingleton<RedisRateLimitService>();
 
 var app = builder.Build();
 
-var forwardedOptions = new ForwardedHeadersOptions
+// Для тестирования
+/*var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
 forwardedOptions.KnownProxies.Clear();
 forwardedOptions.KnownNetworks.Clear();
-app.UseForwardedHeaders(forwardedOptions);
+app.UseForwardedHeaders(forwardedOptions);*/
 
 app.UseMiddleware<BotGuardMiddleware>();
 
