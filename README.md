@@ -4,17 +4,21 @@
 
 **Anti-Abuse API Gateway**
 
-Защита веб-сайтов от ботов, парсеров, спама и DDoS-атак на уровне HTTP-трафика.
+Защита веб-сайтов от ботов, парсеров и «шумных» клиентов на уровне HTTP-трафика.
 
 </div>
 
 > [!IMPORTANT]
 > ### АРХИТЕКТУРА И НАГРУЗКА
-> Проект спроектирован по принципу Event-Driven Architecture (событийно-ориентированной архитектуры). Тяжелые операции (запись в БД, отправка алертов) вынесены в фоновый воркер (Cold Path) через RabbitMQ. Это позволяет шлюзу (Hot Path) обрабатывать входящие запросы за миллисекунды и не блокироваться при пиковых нагрузках.
+> Проект спроектирован по принципу Event-Driven Architecture (событийно-ориентированной архитектуры). Тяжёлые операции (запись инцидентов в БД, бан IP) вынесены в фоновый воркер через RabbitMQ. Это позволяет шлюзу (Hot Path) обрабатывать входящие запросы за миллисекунды и не блокироваться при пиковых нагрузках.
 
-> [!WARNING]
-> ### ЛИМИТЫ KESTREL
-> В ходе нагрузочного тестирования (500 одновременных соединений) шлюз зафиксировал 433 таймаута. Это не утечка памяти и не баг, а аппаратный лимит пула соединений Kestrel (веб-сервера ASP.NET Core) в режиме Debug. В режиме Release (Production) пропускная способность значительно выше. База данных при этом успешно сохранила все 32 308 инцидентов без потерь.
+> [!NOTE]
+> ### ДО И ПОСЛЕ: ШТОРМ СОБЫТИЙ
+> В первом нагрузочном тесте (500 соединений, 30 секунд) шлюз записал 32 308 инцидентов
+> и показал 433 таймаута при latency 912 ms. Причина — `Publish` в middleware
+> публиковал событие на **каждый** запрос забаненного клиента. После фикса
+> (публикация только на первом нарушении за окно) — **+1 инцидент на 927 018 запросов**,
+> latency 3.43 ms, таймаутов 0. Подробности — в разделе Performance.
 
 ---
 
@@ -38,72 +42,91 @@
 
 ---
 
-## ⚙️ Использование (Локальный запуск)
+## Использование (Локальный запуск)
 
-### 1. Разверните инфраструктуру в Docker
-Убедитесь, что Docker Desktop запущен, и выполните команды для поднятия Redis, RabbitMQ, PostgreSQL и целевого сайта (Nginx):
+### Требования
+- Docker Desktop (или Docker Engine + Compose v2)
+- `curl` для проверки
+
+### Запуск
 
 ```bash
-docker run -d --name botguard-redis -p 6379:6379 redis:7
-docker run -d --name botguard-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management-alpine
-docker run -d --name botguard-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=botguard postgres:17
-docker run -d --name target-site -p 8080:80 nginx
+git clone https://github.com/Bikmacs/BotGuard.git
+cd BotGuard
+docker compose up -d --build
 ```
 
-### 2. Примените миграции БД
-В терминале перейдите в папку `src/BotGuard.BanConsumer` и выполните:
+Миграции БД применяются автоматически при старте `banconsumer` (через `MigrateAsync`).
+Шлюз слушает `http://localhost:5233`.
+
+### Проверка работы
 
 ```bash
-dotnet ef database update
-```
+# Легитимный запрос — проксируется на nginx
+curl -A "Mozilla/5.0 (Windows NT 10.0)" http://localhost:5233/
+# → 200 OK, HTML от nginx
 
-### 3. Запустите приложения
-1. Откройте решение `BotGuard.sln` в IDE (Rider / Visual Studio).
-2. Запустите проект `BotGuard.BanConsumer` (в фоне).
-3. Запустите проект `BotGuard.Gateway`. Шлюз начнет слушать порт `http://localhost:5233`.
-
-### 4. Проверка работы
-Отправьте запрос с подозрительным User-Agent:
-
-```bash
+# Подозрительный UA — блокируется
 curl -A "python-requests/2.31" http://localhost:5233/
+# → 403 Forbidden
+
+# Rate limit: 10 запросов подряд — 5 пройдут, 6-й → 429, дальше бан → 403
+for i in {1..10}; do
+  curl -s -o /dev/null -w "%{http_code} " \
+    -A "Mozilla/5.0 (Windows NT 10.0)" http://localhost:5233/
+done; echo
+# → 200 200 200 200 200 429 403 403 403 403
 ```
 
-**Ожидаемый результат:** `403 Forbidden`. В логах `BanConsumer` появится запись о бане, а в PostgreSQL — новый инцидент.
+---
+## Результаты нагрузочного тестирования
 
+`wrk`, Docker Desktop for Mac (Apple Silicon). Абсолютные цифры занижены
+в 2–3 раза относительно Linux — сравнивать нужно относительные показатели.
+
+| Сценарий | RPS | Latency | Таймауты | Δ Incidents |
+|---|---|---|---|---|
+| **До фикса** — 500 соединений, 30 s | 529 | 912 ms | 433 | **+32 308** |
+| **После фикса** — 100 соединений, Mozilla UA | 30 866 | 3.43 ms | 0 | **+1** |
+| **После фикса** — 100 соединений, python UA | 37 330 | 2.72 ms | 0 | **0** |
+
+Вывод: одно логическое нарушение = один инцидент, независимо от числа запросов.
+Падение latency с 912 ms до 3.43 ms — следствие того, что `Publish` убран
+с горячего пути.
 ---
 
-## 📊 Результаты нагрузочного тестирования
-
-Тестирование проводилось с использованием `wrk` и Lua-скрипта (имитация 500 ботов):
-
-- **Пропускная способность:** ~529 запросов в секунду (RPS)
-- **Latency:** 912 мс (при 500 соединениях)
-- **Ошибки соединений:** 433 таймаута
-- **Записано инцидентов в БД:** 32 308
-
----
-
-## ☑️ Распространенные вопросы и проблемы
+## Распространенные вопросы и проблемы
 
 ### Ошибка StackExchange.Redis.RedisConnectionException при старте
 > **Решение:** Убедитесь, что контейнер `botguard-redis` запущен. Проверьте его статус командой `docker ps`. Если контейнер был перезапущен, подождите 5 секунд и перезапустите шлюз.
 
 ### Воркер не читает сообщения из RabbitMQ
-> **Решение:** Проверьте вкладку Queues в панели RabbitMQ Management (`http://localhost:15672`, `guest/guest`). Если очередь `ban-queue` растет, а Consumers равно 0, значит `BotGuard.BanConsumer` потерял соединение. Перезапустите воркер.
+> **Решение:** Проверьте вкладку Queues в панели RabbitMQ Management (http://localhost:15672, botguard / botguard-pass). Если очередь `ban-queue` растет, а Consumers равно 0, значит `BotGuard.BanConsumer` потерял соединение. Перезапустите воркер.
 
 ### Ошибка Cannot instantiate implementation type 'AbuseDetectedConsumer'
 > **Решение:** Класс консьюмера должен быть объявлен как `public class AbuseDetectedConsumer`, а не просто `class`. Проверьте модификаторы доступа.
 
 ### Как разбанить IP вручную?
-> **Решение:** Выполните команду:
-> ```bash
-> docker exec -it botguard-redis redis-cli DEL "blocklist:127.0.0.1"
-> ```
 
+> **Решение:**
+>
+> ```bash
+> # 1. Посмотреть все забаненные IP
+> docker compose exec redis redis-cli --scan --pattern 'blocklist:*'
+> # → "blocklist:::ffff:192.168.65.1"
+>
+> # 2. Удалить конкретный (подставь ключ из вывода выше)
+> docker compose exec redis redis-cli DEL "blocklist:::ffff:192.168.65.1"
+>
+> # 3. Проверить, что удалён
+> docker compose exec redis redis-cli --scan --pattern 'blocklist:*'
+> # → пусто
+> ```
+>
+> Бан истекает сам через TTL (10 минут). `DEL` нужен, только чтобы снять досрочно.
 ---
 
-## 🗒️ Roadmap
+## Roadmap
 
 - [x] Настройка YARP Reverse Proxy
 - [x] Rate Limiting на Redis (Lua)
@@ -111,8 +134,18 @@ curl -A "python-requests/2.31" http://localhost:5233/
 - [x] Воркер и запись истории в PostgreSQL
 - [x] Нагрузочное тестирование
 - [ ] Интеграция с Telegram API (алерты)
-- [ ] Оркестрация Docker Compose
+- [x] Оркестрация Docker Compose
 - [ ] Honeypot-маршруты и JS Proof-of-Work
+
+
+---
+## Ограничения
+
+BotGuard — L7-фильтр для одиночных ботов и «шумных» клиентов, **не замена**
+Cloudflare/Akamai. Per-IP rate limit и per-IP blocklist не защищают от
+распределённой атаки: ботнет даёт 10 000 IP × 1 запрос, лимит на каждый IP
+не срабатывает. Для защиты от L7-DDoS нужны geo-репутация, JS-челлендж,
+поведенческий анализ, anycast-scrubbing на уровне провайдера.
 
 ---
 

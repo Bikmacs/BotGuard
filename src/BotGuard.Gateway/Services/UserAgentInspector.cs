@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace BotGuard.Gateway.Services;
 
 public class UserAgentInspector
@@ -15,11 +18,6 @@ public class UserAgentInspector
         if (string.IsNullOrWhiteSpace(userAgent))
             return true;
 
-        foreach (var signature in BotSignature)
-        {
-            if (userAgent.Contains(signature, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
+        return BotSignature.Any(signature => userAgent.Contains(signature, StringComparison.OrdinalIgnoreCase));
     }
 }

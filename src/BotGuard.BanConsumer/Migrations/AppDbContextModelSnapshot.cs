@@ -46,7 +46,8 @@ namespace BotGuard.BanConsumer.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IpAddress", "DetectedAtUtc");
+                    b.HasIndex("IpAddress", "DetectedAtUtc")
+                        .IsUnique();
 
                     b.ToTable("Incidents");
                 });

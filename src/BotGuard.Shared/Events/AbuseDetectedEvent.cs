@@ -1,3 +1,5 @@
+using System;
+
 namespace BotGuard.Shared.Events;
 
 /// <summary>

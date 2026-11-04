@@ -15,14 +15,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+      <ProjectReference Include="..\BotGuard.Shared\BotGuard.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\BotGuard.BanConsumer\BotGuard.BanConsumer.csproj" />
-      <ProjectReference Include="..\BotGuard.Shared\BotGuard.Shared.csproj" />
+      <Content Include="..\..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>

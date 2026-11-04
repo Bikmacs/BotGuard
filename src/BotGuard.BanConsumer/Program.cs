@@ -1,20 +1,25 @@
+using System;
 using BotGuard.BanConsumer;
 using BotGuard.BanConsumer.Data;
 using BotGuard.Shared.Options;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
-redisOptions.AbortOnConnectFail = true;
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnectionString));
+redisOptions.AbortOnConnectFail = false;
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
 
 
-var pgConnection = builder.Configuration.GetConnectionString("PostgresSQL") ??
-                   "Host=localhost;Database=botguard;Username=postgres;Password=postgres";
+var pgConnection = builder.Configuration.GetConnectionString("Postgres")
+                   ?? throw new InvalidOperationException(
+                       "ConnectionStrings:Postgres is not configured. In Docker set ConnectionStrings__Postgres.");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(pgConnection));
 
@@ -28,10 +33,10 @@ builder.Services.AddMassTransit(x =>
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("localhost", "/", h =>
+        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h =>
         {
             h.Username(rabbitOptions.Username);
-            h.Username(rabbitOptions.Password);
+            h.Password(rabbitOptions.Password);
         });
         cfg.ReceiveEndpoint("ban-queue", e =>
         {

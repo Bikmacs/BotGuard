@@ -1,8 +1,12 @@
+using System;
+using System.Threading.Tasks;
 using BotGuard.BanConsumer.Data;
 using BotGuard.BanConsumer.Models;
 using BotGuard.Shared.Constants;
 using BotGuard.Shared.Events;
 using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace BotGuard.BanConsumer;

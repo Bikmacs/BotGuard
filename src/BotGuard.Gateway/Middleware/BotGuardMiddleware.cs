@@ -1,7 +1,6 @@
 using BotGuard.Gateway.Services;
 using BotGuard.Shared.Events;
 using MassTransit;
-using MassTransit.Testing;
 
 namespace BotGuard.Gateway.Middleware;
 
@@ -38,13 +37,6 @@ public class BotGuardMiddleware(
         {
             logger.LogWarning("Блокировка по User-Agent: {Ip}, UA: {UA}", clientIp, userAgent);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            
-            await publishEndpoint.Publish(new AbuseDetectedEvent(
-                    clientIp, 
-                    AbuseReason.SuspiciousUserAgent, 
-                    userAgent, 
-                    DateTimeOffset.UtcNow), 
-                CancellationToken.None);
 
 
             await context.Response.WriteAsync("403 Forbidden: Suspicious client.", context.RequestAborted);
@@ -55,29 +47,26 @@ public class BotGuardMiddleware(
         {
             logger.LogWarning("IP в чёрном списке: {Ip}", clientIp);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            
-            await publishEndpoint.Publish(new AbuseDetectedEvent(
-                    clientIp, 
-                    AbuseReason.Blacklisted, 
-                    userAgent, 
-                    DateTimeOffset.UtcNow), 
-                CancellationToken.None);
+
 
             await context.Response.WriteAsync("403 Forbidden: Your IP is blacklisted.", context.RequestAborted);
             return;
         }
-        
+
         if (!await redisRateLimitService.TryAcquireAsync(clientIp, context.RequestAborted))
         {
             logger.LogWarning("Превышен Rate Limit для IP: {Ip}", clientIp);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            
-            await publishEndpoint.Publish(new AbuseDetectedEvent(
-                    clientIp, 
-                    AbuseReason.RateLimitExceeded, 
-                    userAgent, 
-                    DateTimeOffset.UtcNow), 
-                CancellationToken.None);
+
+            var first = await redisRateLimitService.TryMarkReported(clientIp, "rateLimit", TimeSpan.FromMinutes(1));
+            if (first)
+            {
+                var evt = new AbuseDetectedEvent(clientIp, AbuseReason.RateLimitExceeded, userAgent,
+                    DateTimeOffset.UtcNow);
+
+                await SafePublishAsync(publishEndpoint, evt, logger);
+            }
+
 
             context.Response.Headers.RetryAfter = "10";
             await context.Response.WriteAsync("429 Too Many Requests: Rate limit exceeded. Try again in 10 seconds.",
@@ -86,5 +75,20 @@ public class BotGuardMiddleware(
         }
 
         await next(context);
+    }
+
+    private static async Task SafePublishAsync(
+        IPublishEndpoint publishEndpoint,
+        AbuseDetectedEvent evt,
+        ILogger logger)
+    {
+        try
+        {
+            await publishEndpoint.Publish(evt);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Не удалось опубликовать AbuseDetectedEvent");
+        }
     }
 }
