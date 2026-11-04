@@ -1,21 +1,23 @@
-using System;
 using BotGuard.BanConsumer;
 using BotGuard.BanConsumer.Data;
 using BotGuard.Shared.Options;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    throw new InvalidOperationException("ConnectionStrings:Postgres не задана. " +
+                                        "В Docker задай env ConnectionStrings__Postgres. " +
+                                        "Локально — appsettings.Development.json.");
+}
+
 var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
 redisOptions.AbortOnConnectFail = false;
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
-
 
 var pgConnection = builder.Configuration.GetConnectionString("Postgres")
                    ?? throw new InvalidOperationException(

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BotGuard.Shared.Constants;
 using StackExchange.Redis;
 
@@ -30,12 +27,12 @@ public class RedisRateLimitService(IConnectionMultiplexer redis)
     private static readonly TimeSpan WindowDuration = TimeSpan.FromSeconds(10);
 
     private const string FixedWindowScript = """
-        local count = redis.call('INCR', KEYS[1])
-        if count == 1 or redis.call('PTTL', KEYS[1]) < 0 then
-            redis.call('PEXPIRE', KEYS[1], ARGV[1]) 
-        end
-        return count
-        """;
+                                             local count = redis.call('INCR', KEYS[1])
+                                             if count == 1 or redis.call('PTTL', KEYS[1]) < 0 then
+                                                 redis.call('PEXPIRE', KEYS[1], ARGV[1]) 
+                                             end
+                                             return count
+                                             """;
 
     public async Task<bool> IsBlacklistedAsync(string ipAddress)
     {
@@ -77,5 +74,4 @@ public class RedisRateLimitService(IConnectionMultiplexer redis)
         var key = $"reported:{reason}:{ipAddress}";
         return await cache.StringSetAsync(key, "1", duration, When.NotExists);
     }
-    
 }
