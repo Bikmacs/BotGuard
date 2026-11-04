@@ -38,6 +38,13 @@ public class BotGuardMiddleware(
             logger.LogWarning("Блокировка по User-Agent: {Ip}, UA: {UA}", clientIp, userAgent);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
+            var first = await redisRateLimitService.TryMarkReported(clientIp, "rateLimit", TimeSpan.FromMinutes(1));
+            if (first)
+            {
+                var evt = new AbuseDetectedEvent(clientIp, AbuseReason.SuspiciousUserAgent, userAgent,
+                    DateTimeOffset.UtcNow);
+                await SafePublishAsync(publishEndpoint, evt, logger);
+            }
 
             await context.Response.WriteAsync("403 Forbidden: Suspicious client.", context.RequestAborted);
             return;
