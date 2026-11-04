@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace BotGuard.Gateway.Services;
 
 public class UserAgentInspector
@@ -12,7 +9,7 @@ public class UserAgentInspector
         "headlesschrome", "phantomjs", "selenium", "puppeteer", "playwright",
         "bot", "crawler", "spider", "scraper", "slurp"
     };
-    
+
     public bool IsSuspicious(string? userAgent)
     {
         if (string.IsNullOrWhiteSpace(userAgent))

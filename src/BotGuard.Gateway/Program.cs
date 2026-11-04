@@ -1,9 +1,8 @@
 using BotGuard.Gateway.Middleware;
 using BotGuard.Gateway.Services;
+using BotGuard.Shared.Options;
 using MassTransit;
 using StackExchange.Redis;
-using BotGuard.Shared.Options;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,10 +19,10 @@ builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h => 
+        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h =>
         {
             h.Username(rabbitOptions.Username);
-            h.Password(rabbitOptions.Password); 
+            h.Password(rabbitOptions.Password);
         });
     });
 });
