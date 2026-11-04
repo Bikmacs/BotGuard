@@ -9,6 +9,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["src/BotGuard.Gateway/BotGuard.Gateway.csproj", "src/BotGuard.Gateway/"]
 COPY ["src/BotGuard.Shared/BotGuard.Shared.csproj", "src/BotGuard.Shared/"]
+COPY ["src/BotGuard.BanConsumer/BotGuard.BanConsumer.csproj", "src/BotGuard.BanConsumer/"]
 RUN dotnet restore "src/BotGuard.Gateway/BotGuard.Gateway.csproj"
 COPY . .
 WORKDIR "/src/src/BotGuard.Gateway"
