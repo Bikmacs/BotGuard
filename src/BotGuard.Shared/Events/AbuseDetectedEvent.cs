@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BotGuard.Shared.Events;
 
 /// <summary>
@@ -10,5 +12,5 @@ namespace BotGuard.Shared.Events;
 public record AbuseDetectedEvent(
     string IpAddress,
     AbuseReason Reason,
-    string? UserAgent,
+    [StringLength(512, MinimumLength = 1)] string UserAgent,
     DateTimeOffset DetectedAtUtc);

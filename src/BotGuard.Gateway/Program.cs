@@ -17,7 +17,7 @@ var rabbitOptions = builder.Configuration
 
 builder.Services.AddMassTransit(x =>
 {
-    x.UsingRabbitMq((context, cfg) =>
+    x.UsingRabbitMq((_, cfg) =>
     {
         cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h => 
         {
@@ -47,6 +47,8 @@ forwardedOptions.KnownNetworks.Clear();
 app.UseForwardedHeaders(forwardedOptions);*/
 
 app.UseMiddleware<BotGuardMiddleware>();
+
+app.UseForwardedHeaders();
 
 app.MapReverseProxy();
 

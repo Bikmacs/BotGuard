@@ -9,12 +9,19 @@ public class UserAgentInspector
         "headlesschrome", "phantomjs", "selenium", "puppeteer", "playwright",
         "bot", "crawler", "spider", "scraper", "slurp"
     };
-
-    public bool IsSuspicious(string? userAgent)
+    
+    private static readonly string[] AllowedBots =
     {
+        "googlebot", "bingbot", "yandexbot"
+    };
+
+    public bool IsSuspicious(string? userAgent, CancellationToken  ct)
+    {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(userAgent))
             return true;
 
-        return BotSignature.Any(signature => userAgent.Contains(signature, StringComparison.OrdinalIgnoreCase));
+        var isAllowed = AllowedBots.Any(bots => userAgent.Contains(bots, StringComparison.OrdinalIgnoreCase));
+        return !isAllowed && BotSignature.Any(signature => userAgent.Contains(signature, StringComparison.OrdinalIgnoreCase));
     }
 }

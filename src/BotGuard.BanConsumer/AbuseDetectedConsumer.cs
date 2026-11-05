@@ -1,12 +1,8 @@
-using System;
-using System.Threading.Tasks;
 using BotGuard.BanConsumer.Data;
 using BotGuard.BanConsumer.Models;
 using BotGuard.Shared.Constants;
 using BotGuard.Shared.Events;
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace BotGuard.BanConsumer;
@@ -27,7 +23,7 @@ public class AbuseDetectedConsumer(
 
         var db = redis.GetDatabase();
         
-        string key = RedisKeys.BlockList(evt.IpAddress);
+        var key = RedisKeys.BlackList(evt.IpAddress);
         await db.StringSetAsync(key, "banned", TimeSpan.FromMinutes(10)).WaitAsync(ct);
 
         logger.LogInformation("IP {Ip} успешно забанен в Redis на 10 минут.", evt.IpAddress);

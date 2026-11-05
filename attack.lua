@@ -1,30 +1,26 @@
--- mixed_attack.lua
 local counter = 0
-
--- Список User-Agent для имитации
 local user_agents = {
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", -- Нормальный
-    "python-requests/2.31", -- Бот (попадёт под UA-фильтр)
-    "curl/7.68.0",          -- Бот (попадёт под UA-фильтр)
-    "Googlebot/2.1 (+http://www.google.com/bot.html)" -- Поисковый бот (после фикса не должен баниться)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 
+    "Googlebot/2.1 (+http://www.google.com/bot.html)",
+    "python-requests/2.31",
+    "curl/7.68.0"
 }
-
--- Генератор случайного IP для обхода блокировки по IP
-local function random_ip()
-    math.randomseed(os.time() + math.random()) -- Немного хаоса
-    return string.format("%d.%d.%d.%d", math.random(1, 223), math.random(0, 255), math.random(0, 255), math.random(0, 255))
-end
 
 request = function()
     counter = counter + 1
     local ua = user_agents[math.random(#user_agents)]
-    local path = "/"
-    -- Каждый 10-й запрос шлем на несуществующий путь, чтобы проверить 404
-    if counter % 10 == 0 then path = "/nonexistent" end
+    
+    -- 80% запросов идут с 10 повторяющихся IP (триггерят бан)
+    -- 20% запросов идут со случайных IP (имитация ботнета)
+    local ip
+    if math.random() < 0.8 then
+        ip = "10.0.0." .. math.random(1, 10)
+    else
+        ip = string.format("192.168.%d.%d", math.random(1, 255), math.random(1, 255))
+    end
 
-    -- Используем X-Forwarded-For для имитации разных IP
-    return wrk.format("GET", path, {
+    return wrk.format("GET", "/", {
         ["User-Agent"] = ua,
-        ["X-Forwarded-For"] = random_ip()
+        ["X-Forwarded-For"] = ip
     })
 end

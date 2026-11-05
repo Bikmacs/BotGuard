@@ -7,6 +7,6 @@ namespace BotGuard.Shared.Constants;
 /// </summary>
 public static class RedisKeys
 {
-    public static string BlockList(string ip) => $"blocklist:{ip}";
+    public static string BlackList(string ip) => $"blacklist:{ip}";
     public static string RateLimiter(string ip) => $"ratelimit:{ip}";
 }

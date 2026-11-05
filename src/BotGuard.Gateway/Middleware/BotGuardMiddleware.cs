@@ -12,15 +12,10 @@ namespace BotGuard.Gateway.Middleware;
 /// 1. Анализ User-Agent на сигнатуры ботов и утилит (curl, python, headless).
 /// 2. Ограничение частоты запросов (Rate Limiting) по IP-адресу.
 /// </para>
-/// 
-/// <para>
-/// Если хотя бы одна проверка не пройдена, запрос обрывается (short-circuiting)
 /// с кодом 403 (Forbidden) или 429 (Too Many Requests), и не доходит до YARP.
-/// </para>
 /// </summary>
 /// <param name="next">Делегат следующего Middleware в пайплайне (в нашем случае — YARP).</param>
 /// <param name="userAgentInspector">Сервис проверки User-Agent на признаки бота.</param>
-/// <param name="inMemoryRateLimitService">Сервис ограничения частоты запросов в памяти.</param>
 /// <param name="logger">Логгер для записи инцидентов безопасности.</param>
 public class BotGuardMiddleware(
     RequestDelegate next,
@@ -30,31 +25,47 @@ public class BotGuardMiddleware(
 {
     public async Task InvokeAsync(HttpContext context, IPublishEndpoint publishEndpoint)
     {
-        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var clientIp = context.Connection.RemoteIpAddress?.ToString();
+        if (string.IsNullOrEmpty(clientIp))
+        {
+            logger.LogWarning("Не удалось определить IP-адрес. Блокируем запрос.");
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("403 Forbidden: Suspicious client.", context.RequestAborted);
+            return;
+        }
+
         var userAgent = context.Request.Headers.UserAgent.ToString();
 
-        if (userAgentInspector.IsSuspicious(userAgent))
+        if (userAgentInspector.IsSuspicious(userAgent, context.RequestAborted))
         {
             logger.LogWarning("Блокировка по User-Agent: {Ip}, UA: {UA}", clientIp, userAgent);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
-            var first = await redisRateLimitService.TryMarkReported(clientIp, "rateLimit", TimeSpan.FromMinutes(1));
-            if (first)
+            try
             {
-                var evt = new AbuseDetectedEvent(clientIp, AbuseReason.SuspiciousUserAgent, userAgent,
-                    DateTimeOffset.UtcNow);
-                await SafePublishAsync(publishEndpoint, evt, logger);
+                var first = await redisRateLimitService.TryMarkReported(clientIp, "ua", TimeSpan.FromMinutes(1),
+                    context.RequestAborted);
+                if (first)
+                {
+                    var evt = new AbuseDetectedEvent(clientIp, AbuseReason.SuspiciousUserAgent, userAgent,
+                        DateTimeOffset.UtcNow);
+                    await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Ошибка, сбой соединения с брокером");
+                
             }
 
             await context.Response.WriteAsync("403 Forbidden: Suspicious client.", context.RequestAborted);
             return;
         }
 
-        if (await redisRateLimitService.IsBlacklistedAsync(clientIp))
+        if (await redisRateLimitService.IsBlacklistedAsync(clientIp, context.RequestAborted))
         {
             logger.LogWarning("IP в чёрном списке: {Ip}", clientIp);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-
 
             await context.Response.WriteAsync("403 Forbidden: Your IP is blacklisted.", context.RequestAborted);
             return;
@@ -65,13 +76,21 @@ public class BotGuardMiddleware(
             logger.LogWarning("Превышен Rate Limit для IP: {Ip}", clientIp);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
-            var first = await redisRateLimitService.TryMarkReported(clientIp, "rateLimit", TimeSpan.FromMinutes(1));
-            if (first)
+            try
             {
-                var evt = new AbuseDetectedEvent(clientIp, AbuseReason.RateLimitExceeded, userAgent,
-                    DateTimeOffset.UtcNow);
+                var first = await redisRateLimitService.TryMarkReported(clientIp, "rateLimit", TimeSpan.FromMinutes(1),
+                    context.RequestAborted);
+                if (first)
+                {
+                    var evt = new AbuseDetectedEvent(clientIp, AbuseReason.RateLimitExceeded, userAgent,
+                        DateTimeOffset.UtcNow);
 
-                await SafePublishAsync(publishEndpoint, evt, logger);
+                    await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Ошибка, сбой соединения с брокером");
             }
 
 
@@ -87,11 +106,13 @@ public class BotGuardMiddleware(
     private static async Task SafePublishAsync(
         IPublishEndpoint publishEndpoint,
         AbuseDetectedEvent evt,
-        ILogger logger)
+        ILogger logger,
+        CancellationToken ct)
     {
         try
         {
-            await publishEndpoint.Publish(evt);
+            ct.ThrowIfCancellationRequested();
+            await publishEndpoint.Publish(evt, ct);
         }
         catch (Exception ex)
         {

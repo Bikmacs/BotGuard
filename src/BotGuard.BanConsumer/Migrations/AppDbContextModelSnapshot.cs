@@ -36,13 +36,16 @@ namespace BotGuard.BanConsumer.Migrations
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("Reason")
                         .HasColumnType("integer");
 
                     b.Property<string>("UserAgent")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
 

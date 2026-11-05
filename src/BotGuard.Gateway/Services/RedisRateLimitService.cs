@@ -21,7 +21,7 @@ namespace BotGuard.Gateway.Services;
 /// PTTL &lt; 0 дополнительно "лечит" ключи, оставшиеся без TTL с прошлых версий.
 /// </para>
 /// </summary>
-public class RedisRateLimitService(IConnectionMultiplexer redis)
+public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRateLimitService> logger)
 {
     private const int MaxRequests = 5;
     private static readonly TimeSpan WindowDuration = TimeSpan.FromSeconds(10);
@@ -34,11 +34,20 @@ public class RedisRateLimitService(IConnectionMultiplexer redis)
                                              return count
                                              """;
 
-    public async Task<bool> IsBlacklistedAsync(string ipAddress)
+    public async Task<bool> IsBlacklistedAsync(string ipAddress, CancellationToken ct)
     {
-        var cache = redis.GetDatabase();
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            var cache = redis.GetDatabase();
 
-        return await cache.KeyExistsAsync(RedisKeys.BlockList(ipAddress));
+            return await cache.KeyExistsAsync(RedisKeys.BlackList(ipAddress));
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to check blacklist");
+            return false;
+        }
     }
 
     /// <summary>
@@ -47,31 +56,48 @@ public class RedisRateLimitService(IConnectionMultiplexer redis)
     /// </summary>
     public async Task<bool> TryAcquireAsync(string ipAddress, CancellationToken ct)
     {
-        var cache = redis.GetDatabase();
+        try
+        {
+            var cache = redis.GetDatabase();
 
-        var count = (long)await cache.ScriptEvaluateAsync(
-            FixedWindowScript,
-            [RedisKeys.RateLimiter(ipAddress)],
-            [(long)WindowDuration.TotalMilliseconds]).WaitAsync(ct);
+            var count = (long)await cache.ScriptEvaluateAsync(
+                FixedWindowScript,
+                [RedisKeys.RateLimiter(ipAddress)],
+                [(long)WindowDuration.TotalMilliseconds]).WaitAsync(ct);
 
-        return count <= MaxRequests;
+            return count <= MaxRequests;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to acquire rate limit");
+            return true;
+        }
     }
 
     /// <summary>
-    /// Бан IP: ключ blocklist:{ip} со временем жизни. Когда TTL истечёт, Redis сам
+    /// Бан IP: ключ blacklist:{ip} со временем жизни. Когда TTL истечёт, Redis сам
     /// удалит ключ — разбан произойдёт автоматически, без нашего участия.
     /// </summary>
     public async Task BanIpAsync(string ipAddress, TimeSpan duration)
     {
         var cache = redis.GetDatabase();
 
-        await cache.StringSetAsync(RedisKeys.BlockList(ipAddress), "banned", duration);
+        await cache.StringSetAsync(RedisKeys.BlackList(ipAddress), "banned", duration);
     }
 
-    public async Task<bool> TryMarkReported(string ipAddress, string reason, TimeSpan duration)
+    public async Task<bool> TryMarkReported(string ipAddress, string reason, TimeSpan duration, CancellationToken ct)
     {
-        var cache = redis.GetDatabase();
-        var key = $"reported:{reason}:{ipAddress}";
-        return await cache.StringSetAsync(key, "1", duration, When.NotExists);
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            var cache = redis.GetDatabase();
+            var key = $"reported:{reason}:{ipAddress}";
+            return await cache.StringSetAsync(key, "1", duration, When.NotExists);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to mark IP as reported");
+            return false;
+        }
     }
 }
