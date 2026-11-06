@@ -3,6 +3,7 @@
 # BotGuard
 
 **High-Performance Anti-Abuse API Gateway**
+![.NET Build](https://github.com/Bikmacs/BotGuard/actions/workflows/dotnet.yml/badge.svg)
 
 Защита веб-приложений от ботов, парсеров и L7-спама на уровне HTTP-трафика с разделением на синхронный Hot Path и асинхронный Cold Path.
 
