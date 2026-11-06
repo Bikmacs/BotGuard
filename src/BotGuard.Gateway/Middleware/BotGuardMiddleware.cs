@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using BotGuard.Gateway.Services;
 using BotGuard.Shared.Events;
 using MassTransit;
@@ -17,6 +18,7 @@ namespace BotGuard.Gateway.Middleware;
 /// <param name="next">Делегат следующего Middleware в пайплайне (в нашем случае — YARP).</param>
 /// <param name="userAgentInspector">Сервис проверки User-Agent на признаки бота.</param>
 /// <param name="logger">Логгер для записи инцидентов безопасности.</param>
+/// <param name="redisRateLimitService">
 public class BotGuardMiddleware(
     RequestDelegate next,
     UserAgentInspector userAgentInspector,
@@ -52,10 +54,9 @@ public class BotGuardMiddleware(
                     await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is SocketException or OperationCanceledException)
             {
                 logger.LogError(ex, "Ошибка, сбой соединения с брокером");
-                
             }
 
             await context.Response.WriteAsync("403 Forbidden: Suspicious client.", context.RequestAborted);
@@ -88,7 +89,7 @@ public class BotGuardMiddleware(
                     await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is SocketException or OperationCanceledException)
             {
                 logger.LogError(ex, "Ошибка, сбой соединения с брокером");
             }
@@ -114,7 +115,7 @@ public class BotGuardMiddleware(
             ct.ThrowIfCancellationRequested();
             await publishEndpoint.Publish(evt, ct);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is SocketException or OperationCanceledException)
         {
             logger.LogError(ex, "Не удалось опубликовать AbuseDetectedEvent");
         }

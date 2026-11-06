@@ -19,10 +19,10 @@ builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((_, cfg) =>
     {
-        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h => 
+        cfg.Host(rabbitOptions.Host, rabbitOptions.Port, "/", h =>
         {
             h.Username(rabbitOptions.Username);
-            h.Password(rabbitOptions.Password); 
+            h.Password(rabbitOptions.Password);
         });
     });
 });
@@ -36,15 +36,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer
 builder.Services.AddSingleton<RedisRateLimitService>();
 
 var app = builder.Build();
-
-// Для тестирования
-/*var forwardedOptions = new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-};
-forwardedOptions.KnownProxies.Clear();
-forwardedOptions.KnownNetworks.Clear();
-app.UseForwardedHeaders(forwardedOptions);*/
 
 app.UseMiddleware<BotGuardMiddleware>();
 

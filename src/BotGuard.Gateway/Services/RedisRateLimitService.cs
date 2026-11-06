@@ -67,22 +67,11 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
 
             return count <= MaxRequests;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is OperationCanceledException)
         {
             logger.LogError(ex, "Failed to acquire rate limit");
             return true;
         }
-    }
-
-    /// <summary>
-    /// Бан IP: ключ blacklist:{ip} со временем жизни. Когда TTL истечёт, Redis сам
-    /// удалит ключ — разбан произойдёт автоматически, без нашего участия.
-    /// </summary>
-    public async Task BanIpAsync(string ipAddress, TimeSpan duration)
-    {
-        var cache = redis.GetDatabase();
-
-        await cache.StringSetAsync(RedisKeys.BlackList(ipAddress), "banned", duration);
     }
 
     public async Task<bool> TryMarkReported(string ipAddress, string reason, TimeSpan duration, CancellationToken ct)
@@ -94,7 +83,7 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
             var key = $"reported:{reason}:{ipAddress}";
             return await cache.StringSetAsync(key, "1", duration, When.NotExists);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is OperationCanceledException)
         {
             logger.LogError(ex, "Failed to mark IP as reported");
             return false;
