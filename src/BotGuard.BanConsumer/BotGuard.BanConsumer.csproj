@@ -28,4 +28,8 @@
       <Link>.dockerignore</Link>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20261105184623_AddIncidentConstraints.Designer.cs" />
+  </ItemGroup>
 </Project>
