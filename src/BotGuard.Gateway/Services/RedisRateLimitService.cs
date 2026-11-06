@@ -43,7 +43,7 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
 
             return await cache.KeyExistsAsync(RedisKeys.BlackList(ipAddress));
         }
-        catch (Exception exception)
+        catch (Exception exception) when(exception is not OperationCanceledException)
         {
             logger.LogError(exception, "Failed to check blacklist");
             return false;
