@@ -67,7 +67,7 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
 
             return count <= MaxRequests;
         }
-        catch (Exception ex) when (ex is OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Failed to acquire rate limit");
             return true;
@@ -83,7 +83,7 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
             var key = $"reported:{reason}:{ipAddress}";
             return await cache.StringSetAsync(key, "1", duration, When.NotExists);
         }
-        catch (Exception ex) when (ex is OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Failed to mark IP as reported");
             return false;

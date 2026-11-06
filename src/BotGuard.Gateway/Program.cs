@@ -37,9 +37,9 @@ builder.Services.AddSingleton<RedisRateLimitService>();
 
 var app = builder.Build();
 
-app.UseMiddleware<BotGuardMiddleware>();
-
 app.UseForwardedHeaders();
+
+app.UseMiddleware<BotGuardMiddleware>();
 
 app.MapReverseProxy();
 

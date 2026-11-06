@@ -54,7 +54,7 @@ public class BotGuardMiddleware(
                     await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
                 }
             }
-            catch (Exception ex) when (ex is SocketException or OperationCanceledException)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Ошибка, сбой соединения с брокером");
             }
@@ -89,7 +89,7 @@ public class BotGuardMiddleware(
                     await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
                 }
             }
-            catch (Exception ex) when (ex is SocketException or OperationCanceledException)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Ошибка, сбой соединения с брокером");
             }
@@ -115,7 +115,7 @@ public class BotGuardMiddleware(
             ct.ThrowIfCancellationRequested();
             await publishEndpoint.Publish(evt, ct);
         }
-        catch (Exception ex) when (ex is SocketException or OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Не удалось опубликовать AbuseDetectedEvent");
         }
