@@ -23,6 +23,7 @@ public class BotGuardMiddleware(
     RequestDelegate next,
     UserAgentInspector userAgentInspector,
     RedisRateLimitService redisRateLimitService,
+    HoneypotInspector honeypotInspector,
     ILogger<BotGuardMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context, IPublishEndpoint publishEndpoint)
@@ -37,6 +38,36 @@ public class BotGuardMiddleware(
         }
 
         var userAgent = context.Request.Headers.UserAgent.ToString();
+        if (userAgent.Length > 64)
+        {
+            userAgent = userAgent[..64];
+        }
+
+        if (context.Request.Path.Value != null && honeypotInspector.IsTrapPath(context.Request.Path.Value))
+        {
+            logger.LogWarning("Сработала Honeypot-ловушка! IP: {Ip}, Path: {Path}", clientIp, context.Request.Path.Value);
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            
+            try
+            {
+                var first = await redisRateLimitService.TryMarkReported(clientIp, "honeypot", TimeSpan.FromMinutes(60),
+                    context.RequestAborted);
+                if (first)
+                {
+                    var evt = new AbuseDetectedEvent(clientIp, AbuseReason.HoneypotTriggered, userAgent,
+                        DateTimeOffset.UtcNow);
+
+                    await SafePublishAsync(publishEndpoint, evt, logger, context.RequestAborted);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Ошибка, сбой соединения с брокером");
+            }
+            
+            await context.Response.WriteAsync("403 Forbidden: Access denied.", context.RequestAborted);
+            return;
+        }
 
         if (userAgentInspector.IsSuspicious(userAgent, context.RequestAborted))
         {

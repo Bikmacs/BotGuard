@@ -2,6 +2,7 @@ using BotGuard.Gateway.Middleware;
 using BotGuard.Gateway.Services;
 using BotGuard.Shared.Options;
 using MassTransit;
+using Microsoft.AspNetCore.HttpOverrides;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,13 +33,21 @@ var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
 
 redisOptions.AbortOnConnectFail = false;
 
+builder.Services.AddSingleton<HoneypotInspector>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
 builder.Services.AddSingleton<RedisRateLimitService>();
 
 var app = builder.Build();
 
-app.UseForwardedHeaders();
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
 
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedOptions);
 app.UseMiddleware<BotGuardMiddleware>();
 
 app.MapReverseProxy();

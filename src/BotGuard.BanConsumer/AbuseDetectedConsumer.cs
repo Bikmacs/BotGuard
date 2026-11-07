@@ -18,6 +18,11 @@ public class AbuseDetectedConsumer(
         var evt = context.Message;
         var ct = context.CancellationToken;
         
+        var safeIpAddress = evt.IpAddress.Length > 64 ? evt.IpAddress.Substring(0, 64) : evt.IpAddress;
+        var safeUserAgent = evt.UserAgent.Length > 64 
+            ? evt.UserAgent.Substring(0, 64) 
+            : evt.UserAgent ?? string.Empty;
+        
         logger.LogWarning("Warning IP: {Ip}, Причина: {Reason}, UA: {UserAgent}",
             evt.IpAddress, evt.Reason, evt.UserAgent);
 
@@ -33,9 +38,9 @@ public class AbuseDetectedConsumer(
 
         var incident = new Incident
         {
-            IpAddress = evt.IpAddress,
+            IpAddress = safeIpAddress,      
             Reason = evt.Reason,
-            UserAgent = evt.UserAgent,
+            UserAgent = safeUserAgent, 
             DetectedAtUtc = evt.DetectedAtUtc,
         };
 

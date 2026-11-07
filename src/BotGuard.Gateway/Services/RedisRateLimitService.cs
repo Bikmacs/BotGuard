@@ -73,6 +73,26 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
             return true;
         }
     }
+    
+    public async Task<bool> TryAcquirseAsync(string ipAddress, CancellationToken ct)
+    {
+        try
+        {
+            var cache = redis.GetDatabase();
+
+            var count = (long)await cache.ScriptEvaluateAsync(
+                FixedWindowScript,
+                [RedisKeys.RateLimiter(ipAddress)],
+                [(long)WindowDuration.TotalMilliseconds]).WaitAsync(ct);
+
+            return count <= MaxRequests;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Failed to acquire rate limit");
+            return true;
+        }
+    }
 
     public async Task<bool> TryMarkReported(string ipAddress, string reason, TimeSpan duration, CancellationToken ct)
     {

@@ -20,20 +20,19 @@ public class RedisRateLimitServiceTests
 
         mockMultiplexer.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(mockStock.Object);
-        var result = new RedisRateLimitService(mockMultiplexer.Object, NullLogger<RedisRateLimitService>.Instance);
+        var service = new RedisRateLimitService(mockMultiplexer.Object, NullLogger<RedisRateLimitService>.Instance);
 
-        var actual = await result.IsBlacklistedAsync(ipAddress, CancellationToken.None);
+        var actual = await service.IsBlacklistedAsync(ipAddress, CancellationToken.None);
         Assert.Equal(expectedResult, actual);
     }
 
     [Fact]
-    [Obsolete("Obsolete")]
     public async Task IsFailOpen_ReturnsExpectedResult()
     {
         var mockMultiplexer = new Mock<IConnectionMultiplexer>();
 
         mockMultiplexer.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Redis is down"));
+            .Throws(new RedisException("Redis is down"));
 
         var service = new RedisRateLimitService(mockMultiplexer.Object, NullLogger<RedisRateLimitService>.Instance);
 
