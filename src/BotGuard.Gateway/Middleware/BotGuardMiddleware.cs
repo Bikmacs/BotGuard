@@ -32,6 +32,7 @@ public class BotGuardMiddleware(
         if (string.IsNullOrEmpty(clientIp))
         {
             logger.LogWarning("Не удалось определить IP-адрес. Блокируем запрос.");
+
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsync("403 Forbidden: Suspicious client.", context.RequestAborted);
             return;

@@ -8,7 +8,7 @@ namespace BotGuard.Gateway.Services;
 ///
 /// <para>
 /// <b>Почему Redis, а не память?</b> InMemory-лимиты живут в одном процессе.
-/// Как только Gateway'ев становится два (или он перезапускается) — у каждого своя
+/// Как только Gateway становится два (или он перезапускается) — у каждого своя
 /// копия счётчиков, и реальный лимит умножается на число инстансов. Redis —
 /// единая точка правды: все реплики шлюза работают с одним ключом ratelimit:{ip}.
 /// </para>
@@ -43,7 +43,7 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
 
             return await cache.KeyExistsAsync(RedisKeys.BlackList(ipAddress));
         }
-        catch (Exception exception) when(exception is not OperationCanceledException)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             logger.LogError(exception, "Failed to check blacklist");
             return false;
@@ -51,30 +51,9 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
     }
 
     /// <summary>
-    /// true — разрешение выдано (запрос проходит), false — окно исчерпано.
-    /// Семантика совпадает с InMemoryRateLimitService.TryAcquire.
+    /// True — разрешение выдано (запрос проходит), false — окно исчерпано.
     /// </summary>
     public async Task<bool> TryAcquireAsync(string ipAddress, CancellationToken ct)
-    {
-        try
-        {
-            var cache = redis.GetDatabase();
-
-            var count = (long)await cache.ScriptEvaluateAsync(
-                FixedWindowScript,
-                [RedisKeys.RateLimiter(ipAddress)],
-                [(long)WindowDuration.TotalMilliseconds]).WaitAsync(ct);
-
-            return count <= MaxRequests;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogError(ex, "Failed to acquire rate limit");
-            return true;
-        }
-    }
-    
-    public async Task<bool> TryAcquirseAsync(string ipAddress, CancellationToken ct)
     {
         try
         {

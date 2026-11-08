@@ -18,29 +18,31 @@ public class AbuseDetectedConsumer(
         var evt = context.Message;
         var ct = context.CancellationToken;
         
-        var safeIpAddress = evt.IpAddress.Length > 64 ? evt.IpAddress.Substring(0, 64) : evt.IpAddress;
-        var safeUserAgent = evt.UserAgent.Length > 64 
-            ? evt.UserAgent.Substring(0, 64) 
-            : evt.UserAgent ?? string.Empty;
+        var safeIpAddress = string.IsNullOrEmpty(evt.IpAddress)
+            ? "unknown" : (evt.IpAddress.Length > 64 ? evt.IpAddress.Substring(0, 64) : evt.IpAddress);
         
+        var safeUserAgent = string.IsNullOrEmpty(evt.UserAgent) 
+            ? "unknown" 
+            : (evt.UserAgent.Length > 64 ? evt.UserAgent.Substring(0, 64) : evt.UserAgent);
+
         logger.LogWarning("Warning IP: {Ip}, Причина: {Reason}, UA: {UserAgent}",
             evt.IpAddress, evt.Reason, evt.UserAgent);
 
         var db = redis.GetDatabase();
-        
+
         var key = RedisKeys.BlackList(evt.IpAddress);
         await db.StringSetAsync(key, "banned", TimeSpan.FromMinutes(10)).WaitAsync(ct);
 
-        logger.LogInformation("IP {Ip} успешно забанен в Redis на 10 минут.", evt.IpAddress);
+        logger.LogInformation("IP {Ip} успешно забанен в Redis на 10 минут", evt.IpAddress);
 
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var incident = new Incident
         {
-            IpAddress = safeIpAddress,      
+            IpAddress = safeIpAddress,
             Reason = evt.Reason,
-            UserAgent = safeUserAgent, 
+            UserAgent = safeUserAgent,
             DetectedAtUtc = evt.DetectedAtUtc,
         };
 
