@@ -1,3 +1,4 @@
+using BotGuard.AdminApi.Features.Incidents.DTOs;
 using BotGuard.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,0 +1,25 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        xmlns:s="clr-namespace:System;assembly=mscorlib"
+                        xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String
+            x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AConfigurationExtensions_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E2_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fdc3b472de7a04d5fb0ff3117bd5748439d28_003F26_003F63054030_003FConfigurationExtensions_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+    <s:String
+            x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AIConnectionMultiplexer_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E2_003Fresharper_002Dhost_003FSourcesCache_003F1726984710578bcb8fc03b59cddc218150f97c5b795d941e429443d2bf1b3d81_003FIConnectionMultiplexer_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+    <s:String
+            x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AIDatabaseAsync_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2026_002E2_003Fresharper_002Dhost_003FSourcesCache_003Fbc9bb0441c80c47bb91b8faecce64442bc5f2b2b3052374588d43045c05959c3_003FIDatabaseAsync_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+    <s:String
+            x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=32f2c0aa_002D89d7_002D4617_002Dbd90_002D3cca9762f31e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="IsFailOpen_ReturnsExpectedResult" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::D035EAE4-3C5F-4501-B1AE-D1EA1454C1E7::net10.0::BotGuard.Tests.RedisRateLimitServiceTests.IsFailOpen_ReturnsExpectedResult&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String>
+    <s:String
+            x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=52dd5de5_002D9af4_002D46ea_002Db1f0_002D6910d5dbd756/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="RedisRateLimitServiceTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::D035EAE4-3C5F-4501-B1AE-D1EA1454C1E7::net10.0::BotGuard.Tests.RedisRateLimitServiceTests&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String>
+    <s:String
+            x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=58c56b00_002Df81e_002D48fd_002Da74f_002Dc8e84271fcf4/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Continuous Testing" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Solution /&gt;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

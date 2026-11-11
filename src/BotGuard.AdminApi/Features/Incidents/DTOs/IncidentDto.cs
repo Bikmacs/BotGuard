@@ -1,7 +1,4 @@
-using System.ComponentModel.DataAnnotations;
-using BotGuard.Shared.Events;
-
-namespace BotGuard.AdminApi.Features.Incidents;
+namespace BotGuard.AdminApi.Features.Incidents.DTOs;
 
 public record class IncidentDto(
     Guid Id,

@@ -1,6 +1,6 @@
 using BotGuard.AdminApi.Features.Incidents;
-using Microsoft.EntityFrameworkCore;
 using BotGuard.Shared.Data;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using StackExchange.Redis;
 
@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
-var redisConnection= builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
+var redisConnection = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
 
 
@@ -24,6 +24,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGetIncidentsEndpoint();
+app.MapRemoveIncidentsEndpoint();
+app.MapGetStatsIncidentsEndpoint();
 
 app.MapGet("/health", () => "AdminAPI is running");
 
