@@ -22,10 +22,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore BotGuard.sln
+        run: dotnet restore BotGuard.slnx
 
       - name: Build
-        run: dotnet build BotGuard.sln --no-restore --configuration Release
+        run: dotnet build BotGuard.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test BotGuard.sln --no-build --configuration Release --verbosity normal
+        run: dotnet test BotGuard.slnx --no-build --configuration Release --verbosity normal
