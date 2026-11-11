@@ -1,5 +1,5 @@
 using BotGuard.BanConsumer;
-using BotGuard.BanConsumer.Data;
+using BotGuard.Shared.Data;
 using BotGuard.Shared.Options;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;

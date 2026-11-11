@@ -16,6 +16,10 @@
     <ItemGroup>
       <Folder Include="Collection\" />
     </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+    </ItemGroup>
     
 
 </Project>

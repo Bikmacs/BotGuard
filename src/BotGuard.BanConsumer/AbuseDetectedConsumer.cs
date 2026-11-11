@@ -1,7 +1,7 @@
-using BotGuard.BanConsumer.Data;
-using BotGuard.BanConsumer.Models;
 using BotGuard.Shared.Constants;
+using BotGuard.Shared.Data;
 using BotGuard.Shared.Events;
+using BotGuard.Shared.Models;
 using MassTransit;
 using StackExchange.Redis;
 

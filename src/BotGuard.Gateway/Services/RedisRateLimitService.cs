@@ -1,4 +1,5 @@
 using BotGuard.Shared.Constants;
+using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
 
 namespace BotGuard.Gateway.Services;
@@ -21,7 +22,10 @@ namespace BotGuard.Gateway.Services;
 /// PTTL &lt; 0 дополнительно "лечит" ключи, оставшиеся без TTL с прошлых версий.
 /// </para>
 /// </summary>
-public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRateLimitService> logger)
+public class RedisRateLimitService(
+    IConnectionMultiplexer redis,
+    ILogger<RedisRateLimitService> logger,
+    IMemoryCache memoryCache)
 {
     private const int MaxRequests = 5;
     private static readonly TimeSpan WindowDuration = TimeSpan.FromSeconds(10);
@@ -38,10 +42,20 @@ public class RedisRateLimitService(IConnectionMultiplexer redis, ILogger<RedisRa
     {
         try
         {
+            if (memoryCache.TryGetValue(RedisKeys.BlackList(ipAddress), out var _))
+                return true;
+
             ct.ThrowIfCancellationRequested();
             var cache = redis.GetDatabase();
 
-            return await cache.KeyExistsAsync(RedisKeys.BlackList(ipAddress));
+            if (!await cache.KeyExistsAsync(RedisKeys.BlackList(ipAddress))) return false;
+            memoryCache.Set(
+                RedisKeys.BlackList(ipAddress),
+                true,
+                TimeSpan.FromSeconds(5));
+
+            return true;
+
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

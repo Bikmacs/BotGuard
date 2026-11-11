@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using BotGuard.Shared.Events;
 
-namespace BotGuard.BanConsumer.Models;
+namespace BotGuard.Shared.Models;
 
 public class Incident
 {

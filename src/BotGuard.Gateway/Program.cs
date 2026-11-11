@@ -36,6 +36,8 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+builder.Services.AddMemoryCache();
+
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
 

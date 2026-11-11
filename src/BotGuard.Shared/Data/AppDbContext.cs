@@ -1,7 +1,7 @@
-using BotGuard.BanConsumer.Models;
+using BotGuard.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BotGuard.BanConsumer.Data;
+namespace BotGuard.Shared.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {

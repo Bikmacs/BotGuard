@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BotGuard.AdminApi/BotGuard.AdminApi.csproj" />
+    <Project Path="src/BotGuard.BanConsumer/BotGuard.BanConsumer.csproj" />
+    <Project Path="src/BotGuard.Gateway/BotGuard.Gateway.csproj" />
+    <Project Path="src/BotGuard.Shared/BotGuard.Shared.csproj" />
+  </Folder>
+  <Project Path="BotGuard.Tests/BotGuard.Tests.csproj" />
+</Solution>

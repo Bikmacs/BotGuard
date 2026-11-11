@@ -1,0 +1,6 @@
+@BotGuard.AdminApi_HostAddress = http://localhost:5011
+
+GET {{BotGuard.AdminApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
