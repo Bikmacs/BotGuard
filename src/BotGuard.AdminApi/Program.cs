@@ -1,3 +1,4 @@
+using BotGuard.AdminApi.Features.Blacklist;
 using BotGuard.AdminApi.Features.Incidents;
 using BotGuard.Shared.Data;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,8 @@ if (app.Environment.IsDevelopment())
 app.MapGetIncidentsEndpoint();
 app.MapRemoveIncidentsEndpoint();
 app.MapGetStatsIncidentsEndpoint();
+app.MapAddBlackListEndpoint();
+app.MapUnbanIpEndpoint();
 
 app.MapGet("/health", () => "AdminAPI is running");
 
